@@ -13,6 +13,6 @@ const reservationSchema = new Schema({
     endDate: Date
 })
 
-const Reservation = model("Reservation", Schema)
+const Reservation = model("Reservation", reservationSchema)
 
 module.exports = Reservation
