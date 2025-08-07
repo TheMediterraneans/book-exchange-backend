@@ -24,11 +24,9 @@ app.use("/auth", authRoutes);
 //// book api routes
 const bookRoutes = require("./routes/booksApi.routes");
 app.use("/api", bookRoutes);
-
 //router to copies
 const copyRoutes = require("./routes/bookCopy.routes")
 app.use("/api", copyRoutes)
-
 //reservations routes
 const reservationsRoutes = require("./routes/reservation.routes")
 app.use("/api", reservationsRoutes)

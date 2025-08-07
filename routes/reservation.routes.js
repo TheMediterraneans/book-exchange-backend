@@ -12,7 +12,7 @@ const MAX_DURATION = 30;
 router.post('/reservations', isAuthenticated, async (req, res) => {
     try {
         const { bookCopyId, requestedDays } = req.body;
-        const userId = req.user._id;
+        const userId = req.payload._id;
 
         // Check if book copy exists and is available FIRST
         const bookCopy = await BookCopy.findById(bookCopyId);
