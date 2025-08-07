@@ -1,18 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const BookCopy = require('../models/BookCopy');
-const Reservation = require('../models/Reservation');
+const BookCopy = require('../models/BookCopy.model');
+const Reservation = require('../models/Reservation.model');
 
 const { isAuthenticated } = require("../middleware/jwt.middleware");
 
 // Maximum reservation duration in days
-const MAX_RESERVATION_DAYS = 30;
+const MAX_DURATION = 30;
 
 // POST /reservations - Create a new reservation
 router.post('/reservations', isAuthenticated, async (req, res) => {
   try {
     const { bookCopyId, requestedDays } = req.body;
-    const userId = req.user._id; // Assuming user is authenticated and attached to req
+    const userId = req.user._id;
+
+    // Check if book copy exists and is available FIRST
+    const bookCopy = await BookCopy.findById(bookCopyId);
+    if (!bookCopy) {
+      return res.status(404).json({ error: 'Book copy not found' });
+    }
+
+    if (!bookCopy.isAvailable) {
+      return res.status(400).json({ error: 'Book is not available for reservation' });
+    }
 
     // Validate requested duration
     if (!requestedDays || requestedDays < 1) {
@@ -21,20 +31,12 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
       });
     }
 
-    if (requestedDays > bookCopy.maxLoanDays) {
+    // Use maxLoanDays from bookCopy model or MAX_DURATION as fallback
+    const maxAllowed = bookCopy.maxLoanDays || MAX_DURATION;
+    if (requestedDays > maxAllowed) {
       return res.status(400).json({ 
-        error: `Reservation duration cannot exceed ${bookCopy.maxLoanDays} days (owner's limit)` 
+        error: `Reservation duration cannot exceed ${maxAllowed} days` 
       });
-    }
-
-    // Check if book copy exists and is available
-    const bookCopy = await BookCopy.findById(bookCopyId);
-    if (!bookCopy) {
-      return res.status(404).json({ error: 'Book copy not found' });
-    }
-
-    if (!bookCopy.isAvailable) {
-      return res.status(400).json({ error: 'Book is not available for reservation' });
     }
 
     // Calculate dates
@@ -71,7 +73,7 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
 router.delete('/reservations/:reservationId', isAuthenticated, async (req, res) => {
   try {
     const { reservationId } = req.params;
-    const userId = req.user._id; // Assuming user is authenticated
+    const userId = req.user._id;
 
     // Find the reservation
     const reservation = await Reservation.findById(reservationId).populate('book');
@@ -98,9 +100,9 @@ router.delete('/reservations/:reservationId', isAuthenticated, async (req, res) 
       message: 'Reservation cancelled successfully'
     });
 
-  } catch (errorHandler) {
+  } catch (error) {
     console.error('Error cancelling reservation:', error);
-    
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

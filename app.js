@@ -30,6 +30,12 @@ app.use("/api", bookRoutes);
 const copyRoutes = require("./routes/bookCopy.routes")
 app.use("/", copyRoutes)
 
+
+//reservations routes
+
+const reservationsRoutes = require("./routes/reservation.routes")
+app.use("/reservations", reservationsRoutes)
+
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);
 
