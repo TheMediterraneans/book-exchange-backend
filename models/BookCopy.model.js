@@ -10,10 +10,16 @@ const bookCopySchema = new Schema ({
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    isAvailable: {
+    isAvailable: { //will change when book is reserved
         type: Boolean,
         required: true
-    } //will change when book is reserved
+    },
+    maxDuration: {
+        type: Number,
+        default: 14,
+        min: 1,
+        max: 30
+    } 
 
 })
 
