@@ -1,4 +1,5 @@
-const { Schema, mongoose } = require("mongoose")
+const mongoose = require("mongoose")
+const {Schema, model} = mongoose
 
 const reservationSchema = new Schema({
     requestBy: {

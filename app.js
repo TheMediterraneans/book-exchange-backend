@@ -25,6 +25,11 @@ app.use("/auth", authRoutes);
 const bookRoutes = require("./routes/booksApi.routes");
 app.use("/api", bookRoutes);
 
+//router to copies
+
+const copyRoutes = require("./routes/bookCopy.routes")
+app.use("/", copyRoutes)
+
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require("./error-handling")(app);
 

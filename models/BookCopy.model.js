@@ -1,4 +1,5 @@
-const {Schema, model} = require("mongoose")
+const mongoose = require("mongoose")
+const {Schema, model} = mongoose
 
 const bookCopySchema = new Schema ({
     apiBookId: {
@@ -9,7 +10,10 @@ const bookCopySchema = new Schema ({
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    status: true //will change when book is reserved
+    isAvailable: {
+        type: Boolean,
+        required: true
+    } //will change when book is reserved
 
 })
 
