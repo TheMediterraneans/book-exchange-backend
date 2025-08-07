@@ -27,7 +27,7 @@ router.get('/search-books', function (req, res, next) {
                 };
             });
 
-            // request to Google Books API (without keys!)
+            // request to Google Books (without keys!)
             axios.get('https://www.googleapis.com/books/v1/volumes', {
                 params: { q: term, maxResults: 10 } // key should go here??
             })
