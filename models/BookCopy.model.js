@@ -5,7 +5,20 @@ const bookCopySchema = new Schema ({
     externalId: {
         type: String, //must fill with the book id from api
         required: true
-    }, 
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    authors: [{
+        type: String
+    }],
+    coverUrl: {
+        type: String
+    },
+    publishedYear: {
+        type: Number
+    },
     owner: {
         type: Schema.Types.ObjectId,
         ref: "User"

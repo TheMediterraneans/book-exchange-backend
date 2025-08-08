@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const errorHandler = require("../middleware/errorHandler")
+const { errorHandler } = require("../middleware/errorHandler")
 
 const { isAuthenticated } = require("../middleware/jwt.middleware");
 
@@ -12,27 +12,48 @@ const Reservation = require("../models/Reservation.model");
 const errorHandling = require("../error-handling");
 
 //POST to create a new book copy
+
 router.post("/mybooks/add", isAuthenticated, (req, res, next) => {
     console.log('Full request body:', req.body);
     console.log('Request headers:', req.headers);
-    
-    const { apiBookId, maxDuration } = req.body;
-    const owner = req.payload._id; // assuming the user ID is in req.payload from isAuthenticated middleware
-    
+         
+    const { externalId, maxDuration, title, authors, coverUrl, publishedYear } = req.body; // ✅ Usa externalId come nel modello
+    const owner = req.payload._id;
+         
     console.log('Extracted data:', { externalId, maxDuration, owner });
     console.log('externalId type:', typeof externalId);
     console.log('externalId value:', externalId);
+         
+    console.log('About to create BookCopy with data:', {
+        externalId,
+        title,
+        authors,
+        coverUrl,
+        publishedYear,
+        owner,
+        isAvailable: true,
+        maxDuration: maxDuration || 14
+    });
     
     BookCopy.create({
-        apiBookId,
+        externalId,
+        title,
+        authors,
+        coverUrl,
+        publishedYear,
         owner,
-        isAvailable: true, // new books are available by default
-        maxDuration: maxDuration || 14 // use provided duration or default to 14
+        isAvailable: true,
+        maxDuration: maxDuration || 14
     })
-    .then((response) => res.json(response))
-    .catch(errorHandler);
+    .then((response) => {
+        console.log('BookCopy created successfully:', response);
+        res.json(response);
+    })
+    .catch((error) => {
+        console.log('Error creating BookCopy:', error);
+        errorHandler(error, req, res, next);
+    });
 });
-
 //GET mybooks (user library)
 router.get("/mybooks", isAuthenticated, (req, res, next) => {
     const userId = req.payload._id;
