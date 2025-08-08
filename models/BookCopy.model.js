@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 const {Schema, model} = mongoose
 
 const bookCopySchema = new Schema ({
-    apiBookId: {
+    externalId: {
         type: String, //must fill with the book id from api
         required: true
     }, 

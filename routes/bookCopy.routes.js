@@ -21,10 +21,14 @@ router.post("/mybooks", isAuthenticated, (req, res, next) => {
 
 //GET mybooks (user library) // add in the front the isAvailable button on the side? of the book in the list
 
-router.get("/mybooks", isAuthenticated, (req, res, next) => {
-    BookCopy.find()
-    .populate(bookApiId)
-    .then((allCopies) => res.json(allCopies))
+router.get("/mybooks", (req, res, next) => { ///remember to add isAuthenticated middleware!!!!
+    const { externalId } = req.query;
+    let filter = {};
+
+    if (externalId) filter.externalId = externalId;
+
+    BookCopy.find(filter)
+    .then((filteredCopies) => res.json(filteredCopies))
     .catch(errorHandler)
 })
 
