@@ -11,7 +11,7 @@ const errorHandling = require("../error-handling");
 
 //POST to create a new book copy
 
-router.post("/mybooks", isAuthenticated, (req, res, next) => {
+router.post("/mybooks/add", isAuthenticated, (req, res, next) => {
     const { title } = req.body
 
     BookCopy.create({title, description, isAvailable})
