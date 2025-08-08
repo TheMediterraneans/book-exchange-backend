@@ -8,7 +8,7 @@ const { isAuthenticated } = require("../middleware/jwt.middleware");
 // Maximum reservation duration in days
 const MAX_DURATION = 30;
 
-// POST /reservations - Create a new reservation
+// POST /reservations - create a new reservation
 router.post('/reservations', isAuthenticated, async (req, res) => {
     try {
         const { bookCopyId, requestedDays } = req.body;
@@ -69,11 +69,30 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
     }
 });
 
-// DELETE /reservations/:reservationId - Cancel a reservation
+
+// GET /reservations - get current user's reservations
+router.get('/reservations', isAuthenticated, async (req, res) => {
+    try {
+        const userId = req.payload._id;
+
+        const reservations = await Reservation.find({ requestBy: userId })
+            .populate('book')
+            .sort({ startDate: -1 }); // from newest to oldest reservation
+
+        res.status(200).json(reservations);
+
+    } catch (error) {
+        console.error('Error fetching user reservations:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+// DELETE /reservations/:reservationId - cancel a reservation
 router.delete('/reservations/:reservationId', isAuthenticated, async (req, res) => {
     try {
         const { reservationId } = req.params;
-        const userId = req.user._id;
+        const userId = req.payload._id;
 
         // Find the reservation
         const reservation = await Reservation.findById(reservationId).populate('book');

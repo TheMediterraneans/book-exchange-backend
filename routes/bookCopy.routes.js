@@ -21,10 +21,9 @@ router.post("/mybooks/add", isAuthenticated, (req, res, next) => {
 
 //GET mybooks (user library) // add in the front the isAvailable button on the side? of the book in the list
 
-router.get("/mybooks", (req, res, next) => { ///remember to add isAuthenticated middleware!!!!
+router.get("/mybooks", (req, res, next) => {
     const { externalId } = req.query;
     let filter = {};
-
     if (externalId) filter.externalId = externalId;
 
     BookCopy.find(filter)
@@ -45,7 +44,7 @@ router.put("mybooks/:mybooksId", isAuthenticated, (req, res, next) => {
     BookCopy.findByIdAndUpdate(mybooksId, req.body, {new: true})
     .then((updateMybook) => res.json(updateMybook))
     .catch(errorHandler)
-   
+
 })
 
 
@@ -58,7 +57,7 @@ router.delete("mybooks/:mybooksId", isAuthenticated, (req, res, next) => {
         res.status(400).json({message: "The Id is not valid"})
     }
 
-    BookCopy.findByIdAndDelete(mybookId)
+    BookCopy.findByIdAndDelete(mybooksId)
     .then(() => {
         res.json({message: "The book has been removed from your library"})
     })
