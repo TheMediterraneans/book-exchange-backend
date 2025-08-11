@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 
 // ℹ️ Handles password encryption
 const jwt = require("jsonwebtoken");
+const TOKEN_SECRET = process.env.TOKEN_SECRET || "dev-secret";
 
 // Require the User model in order to interact with the database
 const User = require("../models/User.model");
@@ -104,7 +105,7 @@ router.post("/login", (req, res, next) => {
         const payload = { _id, email, name };
 
         // Create a JSON Web Token and sign it
-        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+        const authToken = jwt.sign(payload, TOKEN_SECRET, {
           algorithm: "HS256",
           expiresIn: "6h",
         });

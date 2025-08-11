@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const TOKEN_SECRET = process.env.TOKEN_SECRET || "dev-secret";
 
 const isAuthenticated = (req, res, next) => {
   try {
@@ -13,7 +14,7 @@ const isAuthenticated = (req, res, next) => {
     }
 
     // Verify the token
-    const payload = jwt.verify(token, process.env.TOKEN_SECRET);
+    const payload = jwt.verify(token, TOKEN_SECRET);
     
     // Add the payload to the request object
     req.payload = payload;
