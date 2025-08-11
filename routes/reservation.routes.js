@@ -31,7 +31,7 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
             });
         }
 
-        // Use maxLoanDays from bookCopy model or MAX_DURATION as fallback
+        // Use maxDuration from bookCopy model or MAX_DURATION as fallback
         const maxAllowed = bookCopy.maxLoanDays || MAX_DURATION;
         if (requestedDays > maxAllowed) {
             return res.status(400).json({
