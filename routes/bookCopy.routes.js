@@ -2,14 +2,11 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const { errorHandler } = require("../middleware/errorHandler")
 
 const { isAuthenticated } = require("../middleware/jwt.middleware");
 
 const BookCopy = require("../models/BookCopy.model")
-const Reservation = require("../models/Reservation.model");
 
-const errorHandling = require("../error-handling");
 
 //POST to create a new book copy
 
@@ -17,7 +14,7 @@ router.post("/mybooks/add", isAuthenticated, (req, res, next) => {
     console.log('Full request body:', req.body);
     console.log('Request headers:', req.headers);
          
-    const { externalId, maxDuration, title, authors, coverUrl, publishedYear } = req.body; // ✅ Usa externalId come nel modello
+    const { externalId, maxDuration, title, authors, coverUrl, publishedYear } = req.body;
     const owner = req.payload._id;
          
     console.log('Extracted data:', { externalId, maxDuration, owner });
@@ -51,9 +48,10 @@ router.post("/mybooks/add", isAuthenticated, (req, res, next) => {
     })
     .catch((error) => {
         console.log('Error creating BookCopy:', error);
-        errorHandler(error, req, res, next);
+        next(error);
     });
 });
+
 //GET mybooks (user library)
 router.get("/mybooks", isAuthenticated, (req, res, next) => {
     const userId = req.payload._id;
@@ -61,7 +59,7 @@ router.get("/mybooks", isAuthenticated, (req, res, next) => {
     BookCopy.find({ owner: userId })
     .populate("owner")
     .then((allCopies) => res.json(allCopies))
-    .catch(errorHandler);
+    .catch(next);
 });
 
 //PUT to modify the details of a copy like availability, duration of the loan
@@ -84,7 +82,7 @@ router.put("/mybooks/:mybooksId", isAuthenticated, (req, res, next) => {
         return BookCopy.findByIdAndUpdate(mybooksId, req.body, { new: true });
     })
     .then((updatedMybook) => res.json(updatedMybook))
-    .catch(errorHandler);
+    .catch(next);
 });
 
 //DELETE copy from library
@@ -105,7 +103,110 @@ router.delete("/mybooks/:mybooksId", isAuthenticated, (req, res, next) => {
         }
         res.json({ message: "The book has been removed from your library" });
     })
-    .catch(errorHandler);
+    .catch(next);
+});
+
+
+// GET search available books from all authenticated users (for borrowing)
+router.get("/search-available-books", isAuthenticated, (req, res, next) => {
+    const { q } = req.query;
+    const currentUserId = req.payload._id;
+    
+    if (!q || q.trim() === '') {
+        return res.status(400).json({ message: "Search query is required" });
+    }
+    
+    // Search for books that are:
+    // 1. Available (isAvailable: true)
+    // 2. Not owned by the current user (so they can borrow from others)
+    // 3. Match the search term in title or authors
+    const searchRegex = new RegExp(q, 'i'); // case-insensitive search
+    
+    BookCopy.find({
+        isAvailable: true,
+        owner: { $ne: currentUserId }, // exclude current user's books
+        $or: [
+            { title: searchRegex },
+            { authors: { $in: [searchRegex] } }
+        ]
+    })
+    .populate("owner", "name email") // include owner info for contact
+    .then((availableBooks) => {
+        // Group books by externalId to show how many copies are available
+        const groupedBooks = {};
+        
+        availableBooks.forEach(book => {
+            if (!groupedBooks[book.externalId]) {
+                groupedBooks[book.externalId] = {
+                    externalId: book.externalId,
+                    title: book.title,
+                    authors: book.authors,
+                    coverUrl: book.coverUrl,
+                    publishedYear: book.publishedYear,
+                    copies: []
+                };
+            }
+            groupedBooks[book.externalId].copies.push({
+                _id: book._id,
+                owner: book.owner,
+                maxDuration: book.maxDuration
+            });
+        });
+        
+        const result = Object.values(groupedBooks);
+        console.log(`Found ${result.length} unique books with ${availableBooks.length} total copies`);
+        res.json(result);
+    })
+    .catch((error) => {
+        console.error('Search error:', error);
+        next(error);
+    });
+});
+
+// GET browse available copies to borrow (PUBLIC - no authentication required)
+router.get("/browse-available-books", (req, res, next) => {
+    const { q } = req.query;
+    
+    if (!q || q.trim() === '') {
+        return res.status(400).json({ message: "Search query is required" });
+    }
+    
+    const searchRegex = new RegExp(q, 'i'); // case-insensitive search
+    
+    BookCopy.find({
+        isAvailable: true,
+        $or: [
+            { title: searchRegex },
+            { authors: { $in: [searchRegex] } }
+        ]
+    })
+    .select('-owner') // Exclude owner information for privacy
+    .then((availableBooks) => {
+        // Group books by externalId without owner details
+        const groupedBooks = {};
+        
+        availableBooks.forEach(book => {
+            if (!groupedBooks[book.externalId]) {
+                groupedBooks[book.externalId] = {
+                    externalId: book.externalId,
+                    title: book.title,
+                    authors: book.authors,
+                    coverUrl: book.coverUrl,
+                    publishedYear: book.publishedYear,
+                    availableCount: 0
+                };
+            }
+            groupedBooks[book.externalId].availableCount++;
+        });
+        
+        const result = Object.values(groupedBooks);
+        console.log(`Public browse: Found ${result.length} unique books with ${availableBooks.length} total copies`);
+        res.json(result);
+    })
+    .catch((error) => {
+        console.error('Browse error:', error);
+        next(error);
+    });
 });
 
 module.exports = router;

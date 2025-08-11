@@ -1,5 +1,5 @@
-const mongoose = require("mongoose")
-const {Schema, model} = mongoose
+const mongoose = require("mongoose");
+const { Schema, model } = mongoose;
 
 const reservationSchema = new Schema({
     requestBy: {
@@ -12,8 +12,8 @@ const reservationSchema = new Schema({
     },
     startDate: Date,
     endDate: Date
-})
+});
 
-const Reservation = model("Reservation", reservationSchema)
+const Reservation = model("Reservation", reservationSchema);
 
-module.exports = Reservation
+module.exports = Reservation;
