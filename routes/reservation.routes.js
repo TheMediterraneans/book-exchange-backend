@@ -72,8 +72,8 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
 // DELETE /reservations/:reservationId - Cancel a reservation
 router.delete('/reservations/:reservationId', isAuthenticated, async (req, res) => {
     try {
-        const { reservationId } = req.params;
-        const userId = req.user._id;
+    const { reservationId } = req.params;
+    const userId = req.payload._id;
 
         // Find the reservation
         const reservation = await Reservation.findById(reservationId).populate('book');
