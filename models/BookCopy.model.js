@@ -1,5 +1,5 @@
-const mongoose = require("mongoose")
-const {Schema, model} = mongoose
+const mongoose = require("mongoose");
+const {Schema, model} = mongoose;
 
 const bookCopySchema = new Schema ({
     externalId: {
@@ -23,7 +23,7 @@ const bookCopySchema = new Schema ({
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    isAvailable: { //will change when book is reserved
+    isAvailable: {
         type: Boolean,
         required: true
     },
@@ -32,10 +32,9 @@ const bookCopySchema = new Schema ({
         default: 14,
         min: 1,
         max: 30
-    } 
+    }
+});
 
-})
+const BookCopy = model("BookCopy", bookCopySchema);
 
-const BookCopy = model("BookCopy", bookCopySchema)
-
-module.exports = BookCopy
+module.exports = BookCopy;
