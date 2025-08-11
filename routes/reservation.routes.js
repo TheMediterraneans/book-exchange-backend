@@ -5,19 +5,23 @@ const Reservation = require('../models/Reservation.model');
 
 const { isAuthenticated } = require("../middleware/jwt.middleware");
 
-// Maximum reservation duration in days
 const MAX_DURATION = 30;
 
-// POST /reservations - create a new reservation
-router.post('/reservations', isAuthenticated, async (req, res) => {
+// Update your reservation route to:
+router.post('/reservations', isAuthenticated, async (req, res, next) => {
     try {
         const { bookCopyId, requestedDays } = req.body;
         const userId = req.payload._id;
 
         // Check if book copy exists and is available FIRST
-        const bookCopy = await BookCopy.findById(bookCopyId);
+        const bookCopy = await BookCopy.findById(bookCopyId).populate('owner');
         if (!bookCopy) {
             return res.status(404).json({ error: 'Book copy not found' });
+        }
+
+        // NEW: Prevent users from reserving their own books
+        if (bookCopy.owner._id.toString() === userId.toString()) {
+            return res.status(400).json({ error: 'You cannot reserve your own book' });
         }
 
         if (!bookCopy.isAvailable) {
@@ -31,8 +35,8 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
             });
         }
 
-        // Use maxDuration from bookCopy model or MAX_DURATION as fallback
-        const maxAllowed = bookCopy.maxLoanDays || MAX_DURATION;
+        // FIXED: Use maxDuration instead of maxLoanDays
+        const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
         if (requestedDays > maxAllowed) {
             return res.status(400).json({
                 error: `Reservation duration cannot exceed ${maxAllowed} days`
@@ -70,19 +74,88 @@ router.post('/reservations', isAuthenticated, async (req, res) => {
 });
 
 
-// GET /reservations - get current user's reservations
+// In your reservation.routes.js
 router.get('/reservations', isAuthenticated, async (req, res) => {
     try {
         const userId = req.payload._id;
 
         const reservations = await Reservation.find({ requestBy: userId })
-            .populate('book')
-            .sort({ startDate: -1 }); // from newest to oldest reservation
+            .populate({
+                path: 'book',
+                populate: {
+                    path: 'owner',
+                    select: 'name email'
+                }
+            })
+            .sort({ startDate: -1 });
 
         res.status(200).json(reservations);
-
     } catch (error) {
         console.error('Error fetching user reservations:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+// PUT /reservations/:reservationId - update a reservation
+router.put('/reservations/:reservationId', isAuthenticated, async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+        const { requestedDays, endDate } = req.body;
+        const userId = req.payload._id;
+
+        // Find the reservation
+        const reservation = await Reservation.findById(reservationId).populate('book');
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+
+        // Check if the user owns this reservation
+        if (reservation.requestBy.toString() !== userId.toString()) {
+            return res.status(403).json({ error: 'You can only edit your own reservations' });
+        }
+
+        // Validate requested duration if provided
+        if (requestedDays) {
+            if (requestedDays < 1) {
+                return res.status(400).json({
+                    error: 'Reservation duration must be at least 1 day'
+                });
+            }
+
+            // Use maxDuration from bookCopy model or MAX_DURATION as fallback
+            const maxAllowed = reservation.book.maxDuration || MAX_DURATION;
+            if (requestedDays > maxAllowed) {
+                return res.status(400).json({
+                    error: `Reservation duration cannot exceed ${maxAllowed} days`
+                });
+            }
+        }
+
+        // Update the reservation
+        const updateData = {};
+        if (endDate) {
+            updateData.endDate = new Date(endDate);
+        } else if (requestedDays) {
+            // Calculate new end date based on start date and new duration
+            const newEndDate = new Date(reservation.startDate);
+            newEndDate.setDate(newEndDate.getDate() + requestedDays);
+            updateData.endDate = newEndDate;
+        }
+
+        const updatedReservation = await Reservation.findByIdAndUpdate(
+            reservationId, 
+            updateData, 
+            { new: true }
+        ).populate(['requestBy', 'book']);
+
+        res.status(200).json({
+            message: 'Reservation updated successfully',
+            reservation: updatedReservation
+        });
+
+    } catch (error) {
+        console.error('Error updating reservation:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
