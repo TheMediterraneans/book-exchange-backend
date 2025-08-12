@@ -37,6 +37,8 @@ router.post('/reservations', isAuthenticated, async (req, res, next) => {
 
         // FIXED: Use maxDuration instead of maxLoanDays
         const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
+        // Use maxDuration from bookCopy model or MAX_DURATION as fallback
+        const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
         if (requestedDays > maxAllowed) {
             return res.status(400).json({
                 error: `Reservation duration cannot exceed ${maxAllowed} days`
@@ -72,9 +74,70 @@ router.post('/reservations', isAuthenticated, async (req, res, next) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+// PUT /reservations/:reservationId - update reservation duration
+router.put('/reservations/:reservationId', isAuthenticated, async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+        const { requestedDays } = req.body;
+        const userId = req.payload._id;
+
+        // Validate requested duration
+        if (!requestedDays || requestedDays < 1) {
+            return res.status(400).json({
+                error: 'Reservation duration must be at least 1 day'
+            });
+        }
+
+        // Find the reservation with populated book data
+        const reservation = await Reservation.findById(reservationId).populate('book');
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+
+        // Check if the user owns this reservation
+        if (reservation.requestBy.toString() !== userId.toString()) {
+            return res.status(403).json({ error: 'You can only modify your own reservations' });
+        }
+
+        // Get the book copy to check max duration
+        const bookCopy = await BookCopy.findById(reservation.book._id);
+        if (!bookCopy) {
+            return res.status(404).json({ error: 'Associated book copy not found' });
+        }
+
+        // Validate against maximum allowed duration
+        const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
+        if (requestedDays > maxAllowed) {
+            return res.status(400).json({
+                error: `Reservation duration cannot exceed ${maxAllowed} days`
+            });
+        }
+
+        // Calculate new end date based on original start date
+        const newEndDate = new Date(reservation.startDate);
+        newEndDate.setDate(newEndDate.getDate() + requestedDays);
+
+        // Update the reservation
+        reservation.endDate = newEndDate;
+        await reservation.save();
+
+        // Return the updated reservation with populated data
+        const updatedReservation = await Reservation.findById(reservationId)
+            .populate(['requestBy', 'book']);
+
+        res.status(200).json({
+            message: 'Reservation updated successfully',
+            reservation: updatedReservation
+        });
+
+    } catch (error) {
+        console.error('Error updating reservation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
-// In your reservation.routes.js
+// GET /reservations - get current user's reservations
 router.get('/reservations', isAuthenticated, async (req, res) => {
     try {
         const userId = req.payload._id;
