@@ -35,8 +35,7 @@ router.post('/reservations', isAuthenticated, async (req, res, next) => {
             });
         }
 
-        // FIXED: Use maxDuration instead of maxLoanDays
-        const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
+       
         // Use maxDuration from bookCopy model or MAX_DURATION as fallback
         const maxAllowed = bookCopy.maxDuration || MAX_DURATION;
         if (requestedDays > maxAllowed) {
